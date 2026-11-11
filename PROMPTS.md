@@ -26,3 +26,15 @@ Keep this running as you go — don't reconstruct it from memory at the end.
 **Kept as-is / changed / rejected:** Changed from the initial draft: timeout was 3000 (httpx uses seconds, not ms) → 10 s; `_request` returned the raw response or `None` on error → now returns a parsed `OpenWeatherResponse` and raises `WeatherAPIError` (message excludes the URL so the API key isn't leaked); `get` now takes `lat, lon` directly instead of a params dict. Temperatures are in Kelvin since no `units` argument is sent.
 
 ---
+
+## Feature: CSV storage of fetched weather history
+
+**Asked:** "create the feature/storage branch and implement functions to append the fetched data to a data/weather.csv file. The file must not be overwritten as we will have to build historical data as the app runs."
+
+**Got:** `src/weather_app/storage.py` — `append_snapshot(response)` and `append_snapshots(responses)` that append `OpenWeatherResponse` rows to `data/weather.csv` (opened in append mode, folder + header created on first write, header written only once, extra `fetched_at` UTC column), plus `load_history()` returning a pandas DataFrame with parsed datetimes. `tests/test_storage.py`.
+
+**Checked:** 4 tests on temp files: header created once with folder auto-created; 4 appends across 3 calls give 1 header + 4 rows in order (nothing overwritten); a file with a different header raises `ValueError` and is left untouched; missing file loads as an empty DataFrame. Live run: fetched Rome and Milan and appended them to `data/weather.csv`; `load_history()` returned both rows.
+
+**Kept as-is / changed / rejected:** Kept as-is. Added a header check that refuses to append if the CSV's columns don't match the model (e.g. after a model change), so the history can't get silently corrupted. `load_history()` was added beyond the request because analytics will need it.
+
+---
